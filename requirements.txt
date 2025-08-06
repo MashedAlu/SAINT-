@@ -73,7 +73,6 @@ matplotlib-inline==0.1.7
 mistune==3.1.2
 mpmath==1.3.0
 narwhals==1.37.0
-nbclient==0.10.2
 networkx==3.5
 notebook==7.3.2
 notebook_shim==0.2.4
@@ -153,6 +152,7 @@ websocket-client==1.8.0
 widgetsnbextension==4.0.13
 xlsxwriter==3.2.5
 zstandard==0.23.0
+
 
 
 
