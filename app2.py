@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore')
 
 # Set page config
 st.set_page_config(
-    page_title="Ultra-Poor Aid Prediction System",
+    page_title="Ultra-Poor Graduation Programme Participant Eligibility Prediction System",
     page_icon="🏠",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -564,4 +564,5 @@ def main():
             )
 
 if __name__ == "__main__":
+
     main()
