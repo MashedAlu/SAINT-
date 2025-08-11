@@ -277,7 +277,7 @@ def predict_aid_approval(model, scaler, numerical_features, categorical_features
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">Ultra-Poor Graduation Programme Participant Eligibility Prediction System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">UPG Participants Eligibility Assessments Assistant Tool (PEAAT)</h1>', unsafe_allow_html=True)
     
     # Load model
     model, scaler, categorical_features_info = load_model()
@@ -371,20 +371,20 @@ def main():
         with col1:
             asset_count = st.number_input("Number of assets", min_value=1, value=1)
         with col2:
-            asset_value = st.number_input("Total value of assets (BDT)", min_value=0.0, value=0.0, format="%.2f")
+            asset_value = st.number_input("Total value of assets (BDT)", min_value=0, value=0)
     
     # Savings
     has_savings = st.selectbox("Does the family have savings?",["No","Yes"])
     monthly_savings = 0
     if has_savings == "Yes":
-        monthly_savings = st.number_input("Amount saved per month (BDT)", min_value=0.0, value=0.0, format="%.2f")
+        monthly_savings = st.number_input("Amount saved per month (BDT)", min_value=0, value=0)
     
     # Income
     col1, col2 = st.columns(2)
     with col1:
-        monthly_income = st.number_input("Monthly Income (BDT)", min_value=0.0, value=0.0, format="%.2f")
+        monthly_income = st.number_input("Monthly Income (BDT)", min_value=0, value=0)
     with col2:
-        income_per_head = st.number_input("Monthly Income per Head (BDT)", min_value=0.0, value=0.0, format="%.2f")
+        income_per_head = st.number_input("Monthly Income per Head (BDT)", min_value=0, value=0)
     
     # Loan Information Section
     st.markdown("#### 📋 Loan Information")
@@ -399,7 +399,7 @@ def main():
     has_running_loans = st.selectbox("Do you have running loans?",["No","Yes"])
     outstanding_amount = 0
     if has_running_loans == "Yes":
-        outstanding_amount = st.number_input("Outstanding amount (BDT)", min_value=0.0, value=0.0, format="%.2f")
+        outstanding_amount = st.number_input("Outstanding amount (BDT)", min_value=0, value=0)
     
     # Prediction button
     st.markdown("---")
@@ -566,5 +566,6 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
