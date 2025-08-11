@@ -277,7 +277,7 @@ def predict_aid_approval(model, scaler, numerical_features, categorical_features
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🏠 Ultra-Poor Aid Prediction System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">Ultra-Poor Graduation Programme Participant Eligibility Prediction System</h1>', unsafe_allow_html=True)
     
     # Load model
     model, scaler, categorical_features_info = load_model()
@@ -566,3 +566,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
