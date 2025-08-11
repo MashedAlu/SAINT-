@@ -329,6 +329,8 @@ def main():
         migrant_tenure = 0
         if migrant_status == "Yes":
             migrant_tenure = st.number_input("Migrant Tenure (years)", min_value=0, value=0)
+        else:
+            migrant_status = False
         household_size = st.number_input("Number of people in household", min_value=1, value=4)
     
     # Health Information Section
@@ -340,12 +342,16 @@ def main():
         disabled_count = 0
         if has_disability == "Yes":
             disabled_count = st.number_input("Number of disabled people", min_value=1, value=1)
+        else:
+            has_disability = False
     
     with col2:
         has_chronic_illness = st.selectbox("Is there anyone chronically ill in household?",["No","Yes"])
         chronic_ill_count = 0
         if has_chronic_illness == "Yes":
             chronic_ill_count = st.number_input("Number of chronically ill people", min_value=1, value=1)
+        else:
+            has_chronic_illness = False
     
     # Household Demographics Section
     st.markdown("#### 👨‍👩‍👧‍👦 Household Demographics")
@@ -353,10 +359,22 @@ def main():
     
     with col1:
         has_under_5 = st.selectbox("Are there people under 5 years old?",["No","Yes"])
+        if has_under_5 == "Yes":
+            has_under_5 = True
+        else:
+            has_under_5 = False
     with col2:
         has_over_50 = st.selectbox("Are there people over 50 years old?",["No","Yes"])
+        if has_over_50 == "Yes":
+            has_over_50 = True
+        else:
+            has_over_50 = False
     with col3:
         has_18_to_50 = st.selectbox("Are there people between 18-50 years old?",["No","Yes"])
+        if has_18_to_50 == "Yes":
+            has_18_to_50 = True
+        else:
+            has_18_to_50 = False
     
     # Financial Information Section
     st.markdown("#### 💰 Financial Information")
@@ -371,12 +389,16 @@ def main():
             asset_count = st.number_input("Number of assets", min_value=1, value=1)
         with col2:
             asset_value = st.number_input("Total value of assets (BDT)", min_value=0, value=0)
+    else:
+        has_assets = False
     
     # Savings
     has_savings = st.selectbox("Does the family have savings?",["No","Yes"])
     monthly_savings = 0
     if has_savings == "Yes":
         monthly_savings = st.number_input("Amount saved per month (BDT)", min_value=0, value=0)
+    else:
+        has_savings = False
     
     # Income
     col1, col2 = st.columns(2)
@@ -393,12 +415,16 @@ def main():
     loan_count = 0
     if has_past_loans == "Yes":
         loan_count = st.number_input("Number of loans taken", min_value=1, value=1)
+    else:
+        has_past_loans = False
     
     # Running loans
     has_running_loans = st.selectbox("Do you have running loans?",["No","Yes"])
     outstanding_amount = 0
     if has_running_loans == "Yes":
         outstanding_amount = st.number_input("Outstanding amount (BDT)", min_value=0, value=0)
+    else:
+        has_running_loans = False
     
     # Prediction button
     st.markdown("---")
@@ -565,6 +591,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
