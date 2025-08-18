@@ -9,7 +9,8 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 import math
 import warnings
 warnings.filterwarnings('ignore')
-
+import io
+from openpyxl import Workbook
 # Set page config
 st.set_page_config(
     page_title="Ultra-Poor Graduation Programme Participant Eligibility Prediction System",
@@ -273,7 +274,125 @@ def predict_aid_approval(model, scaler, numerical_features, categorical_features
         predicted_class = torch.argmax(outputs, dim=1)
     
     return predicted_class.item(), probabilities[0].numpy()
+@st.cache_data
+@st.cache_data
+def create_template_xlsx():
+    """Create template XLSX file for batch upload"""
+    columns = [
+        'Name', 'Age','Migrant', 'Migrant_Tenure', 'Married', 'HH_member_count','Asset_Yes', 'Asset_Num', 
+        'Asset_Value', 'Total_Income_Monthly', 'Income_Monthly', 
+        'Income_Monthly_per_head','Chronic_Yes', 'Chronic_Num','Disabled_Yes', 'Disabled_Num', 
+        'Savings', 'Savings_Amt', 
+        'has_18_50', 'has_50_plus', 'has_under5',  
+        'Loans_Taken_Yes', 'Loans_Running_Yes', 'Loans_Num', 'Loans_Org', 'Loans_Outstanding',
+        
+    ]
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Batch_Prediction_Template"
+    
+    # Add headers
+    for col, header in enumerate(columns, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    # Add instructions row
+    instructions = [
+        'Full Name', 'Age in years', 'Years as migrant (0 if not migrant)', 
+        'Number of household members', 'Number of assets owned', 
+        'Total value of assets in BDT', 'Total monthly income in BDT', 
+        'Individual monthly income in BDT', 'Monthly income per person in BDT', 
+        'Number of chronically ill people', 'Number of disabled people', 
+        'Number of loans taken', 'Loan organization name', 
+        'Outstanding loan amount in BDT', 'Monthly savings amount in BDT',
+        '1 if has people 18-50, 0 otherwise', '1 if has people 50+, 0 otherwise', 
+        '1 if has people under 5, 0 otherwise', '1 if has chronically ill, 0 otherwise', 
+        '1 if has assets, 0 otherwise', '1 if taken loans, 0 otherwise',
+        '1 if has running loans, 0 otherwise', 'Target (optional for prediction)',
+        '1 if migrant, 0 otherwise', '1 if has disabled, 0 otherwise',
+        '1 if has savings, 0 otherwise', '1 if married, 0 if single'
+    ]
+    
+    for col, instruction in enumerate(instructions, 1):
+        ws.cell(row=2, column=col, value=instruction)
+    
+    # Save to BytesIO
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output.getvalue()
+def process_batch_data(uploaded_file):
+    """Process uploaded batch file and make predictions"""
+    try:
+        df = pd.read_excel(uploaded_file)
+        
+        # Validate required columns
+        required_cols = ['Name', 'Age', 'Migrant_Tenure', 'HH_member_count', 
+                        'Asset_Num', 'Asset_Value', 'Total_Income_Monthly', 
+                        'Income_Monthly_per_head', 'Chronic_Num', 'Disabled_Num']
+        
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            st.error(f"Missing columns: {missing_cols}")
+            return None
+        
+        return df
+    except Exception as e:
+        st.error(f"Error reading file: {str(e)}")
+        return None
 
+def batch_predict(model, scaler, df):
+    """Make batch predictions"""
+    results = []
+    
+    for idx, row in df.iterrows():
+        try:
+            # Map batch data to individual prediction format
+            data = {
+                'migrant_status': bool(row.get('Migrant', 0)),
+                'migrant_tenure': row.get('Migrant_Tenure', 0),
+                'household_size': row.get('HH_member_count', 1),
+                'has_disability': bool(row.get('Disabled_Yes', 0)),
+                'disabled_count': row.get('Disabled_Num', 0),
+                'has_chronic_illness': bool(row.get('Chronic_Yes', 0)),
+                'chronic_ill_count': row.get('Chronic_Num', 0),
+                'has_assets': bool(row.get('Asset_Yes', 0)),
+                'asset_count': row.get('Asset_Num', 0),
+                'asset_value': row.get('Asset_Value', 0),
+                'has_savings': bool(row.get('Savings', 0)),
+                'monthly_savings': row.get('Savings_Amt', 0),
+                'monthly_income': row.get('Total_Income_Monthly', 0),
+                'income_per_head': row.get('Income_Monthly_per_head', 0),
+                'has_past_loans': bool(row.get('Loans_Taken_Yes', 0)),
+                'loan_count': row.get('Loans_Num', 0),
+                'has_running_loans': bool(row.get('Loans_Running_Yes', 0)),
+                'outstanding_amount': row.get('Loans_Outstanding', 0),
+                'has_under_5': bool(row.get('has_under5', 0)),
+                'has_over_50': bool(row.get('has_50_plus', 0)),
+                'has_18_to_50': bool(row.get('has_18_50', 0)),
+                # Add marital_status - convert from Married column (1=Married, 0=Single)
+                'marital_status': bool(row.get('Married', 0))
+            }
+            
+            numerical_features, categorical_features = preprocess_input(data)
+            prediction, probabilities = predict_aid_approval(model, scaler, numerical_features, categorical_features)
+            
+            results.append({
+                'Name': row.get('Name', 'Unknown'),
+                'Prediction': 'Approved' if prediction == 1 else 'Not Approved',
+                'Approval_Probability': f"{probabilities[1]:.1%}",
+                'Rejection_Probability': f"{probabilities[0]:.1%}"
+            })
+            
+        except Exception as e:
+            results.append({
+                'Name': row.get('Name', 'Unknown'),
+                'Prediction': 'Error',
+                'Approval_Probability': 'N/A',
+                'Rejection_Probability': f"Error: {str(e)}"
+            })
+    
+    return pd.DataFrame(results)
 def main():
     # Header
     st.markdown('<h1 class="main-header">UPG Participants Eligibility Assessments Assistant Tool (PEAAT)</h1>', unsafe_allow_html=True)
@@ -553,41 +672,83 @@ def main():
         if insights:
             for insight in insights:
                 st.markdown(f"- {insight}")
-        
-        # Export results
-        if st.button("📁 Export Results", type="secondary"):
-            result_data = {
-                'Name': name,
-                'Age': age,
-                'Marital_Status': marital_status,
-                'Migrant_Status': migrant_status,
-                'Household_Size': household_size,
-                'Monthly_Income': monthly_income,
-                'Income_Per_Head': income_per_head,
-                'Has_Assets': has_assets,
-                'Asset_Value': asset_value,
-                'Has_Disability': has_disability,
-                'Has_Chronic_Illness': has_chronic_illness,
-                'Has_Savings': has_savings,
-                'Has_Past_Loans': has_past_loans,
-                'Has_Running_Loans': has_running_loans,
-                'Outstanding_Amount': outstanding_amount,
-                'Prediction': 'Approved' if prediction == 1 else 'Not Approved',
-                'Approval_Probability': f"{probabilities[1]:.1%}",
-                'Rejection_Probability': f"{probabilities[0]:.1%}",
-                'Prediction_Date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            
-            result_df = pd.DataFrame([result_data])
-            csv = result_df.to_csv(index=False)
-            
+        # Add this section after the individual prediction results and before the end of main()
+    
+    # Batch Prediction Section
+    st.markdown("---")
+    st.markdown('<h2 class="sub-header">📊 Batch Predictions</h2>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="info-box">
+        <strong>Batch Processing:</strong> Upload multiple applicants at once for efficient processing.
+        Download the template, fill it with applicant data, and upload for batch predictions.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Template download
+        if st.button("📥 Download Template", type="secondary"):
+            template_data = create_template_xlsx()
             st.download_button(
-                label="Download Results as CSV",
-                data=csv,
-                file_name=f"aid_prediction_{name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
+                label="📁 Download XLSX Template",
+                data=template_data,
+                file_name="batch_prediction_template.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
+    
+    with col2:
+        # File upload
+        uploaded_file = st.file_uploader(
+            "📤 Upload Filled Template",
+            type=['xlsx', 'xls'],
+            help="Upload the filled template with applicant data"
+        )
+    
+    if uploaded_file is not None:
+        st.success(f"✅ File uploaded: {uploaded_file.name}")
+        
+        # Process batch file
+        batch_df = process_batch_data(uploaded_file)
+        
+        if batch_df is not None:
+            st.markdown(f"**📋 Found {len(batch_df)} applicants in the file**")
+            
+            if st.button("🚀 Run Batch Predictions", type="primary"):
+                with st.spinner("Processing batch predictions..."):
+                    results_df = batch_predict(model, scaler, batch_df)
+                
+                st.success(f"✅ Processed {len(results_df)} predictions!")
+                
+                # Display results
+                st.markdown("#### 📊 Batch Results Summary")
+                
+                approved_count = len(results_df[results_df['Prediction'] == 'Approved'])
+                rejected_count = len(results_df[results_df['Prediction'] == 'Not Approved'])
+                error_count = len(results_df[results_df['Prediction'] == 'Error'])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("✅ Approved", approved_count)
+                with col2:
+                    st.metric("❌ Rejected", rejected_count)
+                with col3:
+                    st.metric("⚠️ Errors", error_count)
+                
+                # Display detailed results
+                st.markdown("#### 📋 Detailed Results")
+                st.dataframe(results_df, use_container_width=True)
+                
+                # Download results
+                csv_results = results_df.to_csv(index=False)
+                st.download_button(
+                    label="📁 Download Batch Results",
+                    data=csv_results,
+                    file_name=f"batch_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+########################
 if __name__ == "__main__":
 
     main()
